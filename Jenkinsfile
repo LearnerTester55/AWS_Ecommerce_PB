@@ -38,9 +38,9 @@ pipeline {
         stage('Deploy on EC2') {
             steps {
                 // Deploy on EC2 via SSH
-                sshagent(['ec2-ssh-credentials']) {
+                sshagent(['ec2-ssh-key']) {
                     bat """
-                    ssh -o StrictHostKeyChecking=no ec2-user@<EC2_PUBLIC_IP> ^
+                    ssh -o StrictHostKeyChecking=no ec2-user@35.153.19.62 ^
                         "docker stop ecommerce || true && ^
                         docker rm ecommerce || true && ^
                         docker pull informatiker99/ecommerce-site:latest && ^
