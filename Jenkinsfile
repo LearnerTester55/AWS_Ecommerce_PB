@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "informatiker99/ecommerce-site:latest"
-        DOCKER_CONTEXT = "default"  // Use Docker Desktop Windows context
     }
 
     stages {
@@ -16,8 +15,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image using the correct context
-                    def dockerImage = bat(script: "docker build --context %DOCKER_CONTEXT% -t %DOCKER_IMAGE% ./ecommerce", returnStdout: true).trim()
+                    // Use bat command directly instead of docker.build()
+                    bat "docker build -t ${DOCKER_IMAGE} ./ecommerce"
                 }
             }
         }
@@ -25,9 +24,9 @@ pipeline {
         stage('Push to DockerHub') {
             steps {
                 script {
-                    // Login and push image
+                    // Use bat command directly for login & push
                     bat "docker login -u informatiker99 -p MyNewDock1600@"
-                    bat "docker push %DOCKER_IMAGE%"
+                    bat "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
@@ -39,8 +38,8 @@ pipeline {
                     ssh -o StrictHostKeyChecking=no ec2-user@35.153.19.62 ^
                         "docker stop ecommerce || true && ^
                         docker rm ecommerce || true && ^
-                        docker pull informatiker99/ecommerce-site:latest && ^
-                        docker run -d -p 8080:80 --name ecommerce informatiker99/ecommerce-site:latest"
+                        docker pull ${DOCKER_IMAGE} && ^
+                        docker run -d -p 8080:80 --name ecommerce ${DOCKER_IMAGE}"
                     """
                 }
             }
