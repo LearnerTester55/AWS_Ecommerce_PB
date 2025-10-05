@@ -3,8 +3,6 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "informatiker99/ecommerce-site:latest"
-        DOCKER_USERNAME = "informatiker99"
-        DOCKER_PASSWORD = "MyNewDock1600@"
     }
 
     stages {
@@ -17,8 +15,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image from the ecommerce folder
-                    dockerImage = docker.build(DOCKER_IMAGE, "./ecommerce")
+                    def dockerImage = docker.build(DOCKER_IMAGE, "./ecommerce")
                 }
             }
         }
@@ -26,18 +23,15 @@ pipeline {
         stage('Push to DockerHub') {
             steps {
                 script {
-                    // Push Docker image using plain Docker CLI
-                    bat """
-                    docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%
-                    docker push %DOCKER_IMAGE%
-                    """
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
+                        dockerImage.push()
+                    }
                 }
             }
         }
 
         stage('Deploy on EC2') {
             steps {
-                // Deploy on EC2 via SSH
                 sshagent(['ec2-ssh-key']) {
                     bat """
                     ssh -o StrictHostKeyChecking=no ec2-user@35.153.19.62 ^
