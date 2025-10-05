@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "informatiker99/ecommerce-site:latest"
+        DOCKER_USERNAME = "informatiker99"
+        DOCKER_PASSWORD = "MyNewDock1600@"
     }
 
     stages {
@@ -24,10 +26,11 @@ pipeline {
         stage('Push to DockerHub') {
             steps {
                 script {
-                    // Use DockerHub credentials added in Jenkins
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        dockerImage.push()
-                    }
+                    // Push Docker image using plain Docker CLI
+                    bat """
+                    docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%
+                    docker push %DOCKER_IMAGE%
+                    """
                 }
             }
         }
@@ -36,13 +39,12 @@ pipeline {
             steps {
                 // Deploy on EC2 via SSH
                 sshagent(['ec2-ssh-credentials']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ec2-user@<EC2_PUBLIC_IP> '
-                        docker stop ecommerce || true
-                        docker rm ecommerce || true
-                        docker pull informatiker99/ecommerce-site:latest
-                        docker run -d -p 8080:80 --name ecommerce informatiker99/ecommerce-site:latest
-                    '
+                    bat """
+                    ssh -o StrictHostKeyChecking=no ec2-user@<EC2_PUBLIC_IP> ^
+                        "docker stop ecommerce || true && ^
+                        docker rm ecommerce || true && ^
+                        docker pull informatiker99/ecommerce-site:latest && ^
+                        docker run -d -p 8080:80 --name ecommerce informatiker99/ecommerce-site:latest"
                     """
                 }
             }
