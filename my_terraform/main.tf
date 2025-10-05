@@ -1,56 +1,34 @@
 provider "aws" {
-  region = "ap-south-1"
+  region = "us-east-1"
 }
 
-resource "aws_s3_bucket" "terraform_state" {
-  bucket = "my-terraform-state-demo-12345"
-  acl    = "private"
+# ========================
+# Get default VPC
+# ========================
+data "aws_vpc" "default" {
+  default = true
 }
 
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
-  tags = {
-    Name = "demo-vpc"
+# ========================
+# Get default subnets
+# ========================
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
   }
 }
 
-resource "aws_subnet" "main" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  map_public_ip_on_launch = true
-  availability_zone       = "ap-south-1a"
-  tags = {
-    Name = "demo-subnet"
-  }
+locals {
+  default_subnet_id = data.aws_subnets.default.ids[0]
 }
 
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-  tags = {
-    Name = "demo-igw"
-  }
-}
-
-resource "aws_route_table" "rt" {
-  vpc_id = aws_vpc.main.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-  tags = {
-    Name = "demo-rt"
-  }
-}
-
-resource "aws_route_table_association" "rta" {
-  subnet_id      = aws_subnet.main.id
-  route_table_id = aws_route_table.rt.id
-}
-
+# ========================
+# Security Group
+# ========================
 resource "aws_security_group" "sg" {
-  name        = "demo-sg"
-  description = "Allow SSH, HTTP, Jenkins"
-  vpc_id      = aws_vpc.main.id
+  name   = "demo-sg"
+  vpc_id = data.aws_vpc.default.id
 
   ingress {
     from_port   = 22
@@ -79,32 +57,29 @@ resource "aws_security_group" "sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "demo-sg"
-  }
 }
 
+# ========================
+# EC2 Instance
+# ========================
 resource "aws_instance" "jenkins_ec2" {
-  ami                    = "ami-052064a798f08f0d3"
+  ami                    = "ami-052064a798f08f0d3"   # Amazon Linux 2
   instance_type          = "t2.micro"
-  key_name               = "key_capstone"
-  subnet_id              = aws_subnet.main.id
+  key_name               = "newkey_capstone"
+  subnet_id              = local.default_subnet_id
   vpc_security_group_ids = [aws_security_group.sg.id]
 
-  user_data = file("user_data.sh")
+  user_data = file("../my_terraform/user_data.sh")  # adjust path if needed
 
   tags = {
     Name = "jenkins-docker-ec2"
   }
 }
 
+# ========================
+# Outputs
+# ========================
 output "ec2_public_ip" {
   value       = aws_instance.jenkins_ec2.public_ip
   description = "Public IPv4 of EC2 instance"
-}
-
-output "s3_bucket_name" {
-  value       = aws_s3_bucket.terraform_state.id
-  description = "Terraform state S3 bucket"
 }
