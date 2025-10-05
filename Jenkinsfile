@@ -8,7 +8,8 @@ pipeline {
     stages {
         stage('Clone Repo') {
             steps {
-                git branch: 'main', url: 'https://github.com/<your-username>/<repo>.git'
+                git branch: 'main', url: 'https://github.com/LearnerTester55/AWS_Ecommerce_PB.git'
+
             }
         }
 
