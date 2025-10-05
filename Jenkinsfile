@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "informatiker99/ecommerce-site:latest"
+        DOCKER_CONTEXT = "default"  // Use Docker Desktop Windows context
     }
 
     stages {
@@ -15,7 +16,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    def dockerImage = docker.build(DOCKER_IMAGE, "./ecommerce")
+                    // Build Docker image using the correct context
+                    def dockerImage = bat(script: "docker build --context %DOCKER_CONTEXT% -t %DOCKER_IMAGE% ./ecommerce", returnStdout: true).trim()
                 }
             }
         }
@@ -23,9 +25,9 @@ pipeline {
         stage('Push to DockerHub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        dockerImage.push()
-                    }
+                    // Login and push image
+                    bat "docker login -u informatiker99 -p MyNewDock1600@"
+                    bat "docker push %DOCKER_IMAGE%"
                 }
             }
         }
